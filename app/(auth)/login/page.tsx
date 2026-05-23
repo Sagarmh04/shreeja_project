@@ -19,15 +19,14 @@ export default async function LoginPage() {
       <div className="grid w-full gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[36px] bg-[linear-gradient(135deg,#102033_0%,#0d9488_120%)] p-8 text-white shadow-[0_30px_100px_rgba(15,23,42,0.18)] sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/70">
-            Welcome back
+            Northstar Care
           </p>
           <h1 className="mt-4 text-5xl font-semibold tracking-tight">
-            A clear, comfortable home for important personal records.
+            Welcome back to your care portal.
           </h1>
           <p className="mt-6 max-w-xl text-sm leading-8 text-white/78">
-            The customer view stays focused on what matters: organized records,
-            smooth updates, and quick access when someone needs their details in
-            a hurry.
+            Review your information, update personal details, and keep your key
+            references ready for every visit.
           </p>
         </div>
         <div className="space-y-5">
@@ -36,8 +35,8 @@ export default async function LoginPage() {
           ) : null}
           <AuthForm
             mode="login"
-            title="Sign in"
-            description="Pick up where you left off and manage your information in a few clicks."
+            title="Member sign in"
+            description="Pick up where you left off and manage your care details in a few clicks."
             action={loginAction}
           />
         </div>

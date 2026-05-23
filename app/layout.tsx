@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "QuietLedger",
-  description: "A modern privacy workspace with seamless record management.",
+  title: "Northstar Care",
+  description: "A modern member portal for managing personal care records.",
 };
 
 export default function RootLayout({

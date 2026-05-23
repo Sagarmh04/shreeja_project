@@ -28,7 +28,7 @@ export function AuthForm({
   return (
     <div className="w-full rounded-[32px] border border-white/50 bg-white/95 p-8 shadow-[0_32px_100px_rgba(15,23,42,0.14)] backdrop-blur">
       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--accent-deep)]">
-        Privacy workspace
+        Northstar Care
       </p>
       <h1 className="mt-5 text-4xl font-semibold tracking-tight text-[var(--brand-ink)]">
         {title}

@@ -35,9 +35,9 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell
-      eyebrow="Customer workspace"
+      eyebrow="Member home"
       title="Everything important, collected in one place."
-      description="Keep personal details clear, current, and easy to find. The layout is designed to feel friendly first, without exposing the mechanics behind the system."
+      description="Keep your care details clear, current, and easy to find whenever you need them."
       profileName={profile.fullName}
       adminLink={profile.isAdmin}
     >
@@ -46,18 +46,18 @@ export default async function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-3">
             {[
               {
-                label: "Active records",
+                label: "Saved records",
                 value: `${records.length}`,
                 icon: FileText,
               },
               {
-                label: "Most recent sign-in",
+                label: "Latest visit",
                 value: recentLogin ? formatDateTime(recentLogin.loginAt) : "First visit",
                 icon: Shield,
               },
               {
-                label: "Ready to add",
-                value: "New information",
+                label: "Ready to update",
+                value: "Profile details",
                 icon: Plus,
               },
             ].map(({ label, value, icon: Icon }) => (
@@ -80,17 +80,17 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight">
-                  Recently updated records
+                  Recently updated details
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-[var(--muted-ink)]">
-                  Open a card to view full details, add attachments, or make a change.
+                  Open any card to review the full details, update information, or manage files.
                 </p>
               </div>
               <Link
                 href="/records/new"
                 className="rounded-full bg-[var(--brand-ink)] px-4 py-2 text-sm font-semibold text-white"
               >
-                Add record
+                Add details
               </Link>
             </div>
 
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
 
               {records.length === 0 ? (
                 <div className="rounded-[26px] border border-dashed border-[var(--line)] bg-[var(--panel-soft)] p-8 text-sm leading-7 text-[var(--muted-ink)]">
-                  No records yet. Start with one simple entry and build from there.
+                  No details added yet. Start with one simple entry and build from there.
                 </div>
               ) : null}
             </div>
@@ -150,17 +150,17 @@ export default async function DashboardPage() {
               Fast path
             </p>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-              Add your next record in under a minute.
+              Add your next detail in under a minute.
             </h2>
             <p className="mt-3 text-sm leading-7 text-white/78">
-              The record form is flexible enough for contact details, identity notes,
-              emergency information, and similar quick references.
+              Use the flexible form for contact details, emergency references,
+              wellness notes, and similar quick references.
             </p>
             <Link
               href="/records/new"
               className="mt-6 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-ink)]"
             >
-              Start a new record
+              Start a new entry
             </Link>
           </div>
         </aside>

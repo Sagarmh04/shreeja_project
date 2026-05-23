@@ -23,21 +23,21 @@ export default async function SignupPage() {
           ) : null}
           <AuthForm
             mode="signup"
-            title="Create your workspace"
-            description="Start with a lightweight account setup and keep your details in one polished place."
+            title="Create your member account"
+            description="Start with a lightweight setup and keep your important care details in one polished place."
             action={signupAction}
           />
         </div>
         <div className="rounded-[36px] border border-white/60 bg-white/85 p-8 shadow-[0_30px_100px_rgba(15,23,42,0.12)]">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--accent-deep)]">
-            What the first version includes
+            Why members like it
           </p>
           <div className="mt-6 grid gap-5">
             {[
-              "Simple registration and login with Supabase Auth",
-              "A customer dashboard with flexible personal record cards",
-              "Attachment support through Supabase Storage",
-              "A separate admin area for users and audit activity",
+              "Quick registration and smooth sign-in",
+              "A clean dashboard with flexible care records",
+              "Document uploads for personal references",
+              "A fast, mobile-friendly experience",
             ].map((item) => (
               <div
                 key={item}

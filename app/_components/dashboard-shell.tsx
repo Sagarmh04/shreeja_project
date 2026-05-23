@@ -56,7 +56,7 @@ export function DashboardShell({
               ) : null}
               {adminLink ? (
                 <Link href="/admin">
-                  <Button variant="secondary">Admin dashboard</Button>
+                  <Button variant="secondary">Operations</Button>
                 </Link>
               ) : null}
               <form action={logoutAction}>

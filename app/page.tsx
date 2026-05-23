@@ -9,18 +9,18 @@ import { hasDatabaseEnv, hasSupabaseClientEnv } from "@/lib/env";
 
 const highlights = [
   {
-    title: "Fast personal workspace",
-    copy: "Customers get a calm place to keep their important details organized and easy to update.",
+    title: "Member-first portal",
+    copy: "Members get a calm place to keep their essential care details organized and easy to update.",
     icon: Sparkles,
   },
   {
-    title: "Clean activity oversight",
-    copy: "Monitoring stays in the background so the product feels natural while still capturing the needed trace.",
+    title: "Care-ready access",
+    copy: "Important information stays clear, current, and easy to retrieve when teams need a quick reference.",
     icon: SearchCheck,
   },
   {
     title: "Built for trust",
-    copy: "Next.js, Supabase, and Drizzle keep the experience fast while preserving a clear data structure.",
+    copy: "A polished, dependable experience for wellness brands that want a simple digital member journey.",
     icon: ShieldCheck,
   },
 ];
@@ -40,24 +40,24 @@ export default async function HomePage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.26em] text-[var(--accent-deep)]">
-                QuietLedger
+                Northstar Care
               </p>
               <h1 className="mt-4 max-w-3xl text-5xl font-semibold leading-tight tracking-tight text-[var(--brand-ink)] sm:text-6xl">
-                Personal data made simple for customers, visible for administrators, and calm on the surface.
+                A refined member portal for modern wellness and preventive care teams.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--muted-ink)]">
-                This school project focuses on a smooth customer experience first:
-                quick sign-in, tidy records, elegant forms, and a monitoring layer
-                that stays completely out of the way.
+                Northstar Care gives members one elegant place to manage contact
+                details, essential references, and supporting documents without
+                unnecessary friction.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
               <Link href="/signup">
-                <Button className="w-full sm:w-auto lg:w-52">Create account</Button>
+                <Button className="w-full sm:w-auto lg:w-52">Join now</Button>
               </Link>
               <Link href="/login">
                 <Button variant="secondary" className="w-full sm:w-auto lg:w-52">
-                  Sign in
+                  Member sign in
                 </Button>
               </Link>
             </div>

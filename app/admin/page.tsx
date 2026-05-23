@@ -10,6 +10,14 @@ import { auditLogs, profiles } from "@/lib/db/schema";
 import { hasDatabaseEnv, hasSupabaseClientEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/utils";
 
+function formatActionLabel(action: string) {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 type AdminPageProps = {
   searchParams: Promise<{
     user?: string;
@@ -55,9 +63,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   return (
     <DashboardShell
-      eyebrow="Admin dashboard"
-      title="System activity at a glance"
-      description="Review users, search the activity trail, and filter events by date or action."
+      eyebrow="Operations console"
+      title="Team activity at a glance"
+      description="Review member accounts, track workflow history, and filter events by date or action."
       profileName={profile.fullName}
       adminLink
     >
@@ -67,7 +75,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
               <p className="mt-2 text-sm leading-7 text-[var(--muted-ink)]">
-                The latest registered accounts in the system.
+                The latest member accounts across Northstar Care.
               </p>
             </div>
           </div>
@@ -90,9 +98,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <section className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Audit trail</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">Activity center</h2>
               <p className="mt-2 text-sm leading-7 text-[var(--muted-ink)]">
-                Search by user, action, or date range.
+                Search by member, action, or date range.
               </p>
             </div>
             <form className="grid gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel-soft)] p-4 md:grid-cols-2">
@@ -106,7 +114,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <option value="">All actions</option>
                 {actionTypes.map(({ action }) => (
                   <option key={action} value={action}>
-                    {action}
+                    {formatActionLabel(action)}
                   </option>
                 ))}
               </SelectField>
@@ -125,10 +133,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           <div className="mt-6 overflow-hidden rounded-[24px] border border-[var(--line)]">
             <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1fr] gap-3 bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
-              <span>User</span>
+              <span>Member</span>
               <span>Action</span>
-              <span>Target</span>
-              <span>Time</span>
+              <span>Area</span>
+              <span>When</span>
             </div>
             <div className="divide-y divide-[var(--line)] bg-white">
               {logs.map((log) => (
@@ -137,7 +145,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1fr] gap-3 px-4 py-4 text-sm text-[var(--brand-ink)]"
                 >
                   <span className="truncate">{log.actorEmail}</span>
-                  <span>{log.action}</span>
+                  <span>{formatActionLabel(log.action)}</span>
                   <span className="truncate">{log.targetTable}</span>
                   <span className="text-[var(--muted-ink)]">
                     {formatDateTime(log.createdAt)}
@@ -146,7 +154,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               ))}
               {logs.length === 0 ? (
                 <div className="px-4 py-8 text-sm text-[var(--muted-ink)]">
-                  No audit logs match the selected filters.
+                  No activity matches the selected filters.
                 </div>
               ) : null}
             </div>
