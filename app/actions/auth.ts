@@ -6,10 +6,19 @@ import { redirect } from "next/navigation";
 
 import { createAuditLog } from "@/lib/audit";
 import { getDb } from "@/lib/db";
-import { loginHistory, profiles } from "@/lib/db/schema";
-import { isAdminEmail } from "@/lib/auth";
+import { loginHistory } from "@/lib/db/schema";
+import { ensureProfileForUser, isAdminEmail } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { authSchema, signupSchema, type FormState } from "@/lib/validators";
+
+async function recordLogin(userId: string) {
+  try {
+    const db = getDb();
+    await db.insert(loginHistory).values({ userId });
+  } catch (error) {
+    console.error("Failed to record login history.", error);
+  }
+}
 
 export async function loginAction(
   _state: FormState,
@@ -31,8 +40,8 @@ export async function loginAction(
     return { error: error?.message ?? "Unable to sign in right now." };
   }
 
-  const db = getDb();
-  await db.insert(loginHistory).values({ userId: data.user.id });
+  await ensureProfileForUser(data.user);
+  await recordLogin(data.user.id);
 
   await createAuditLog({
     actorUserId: data.user.id,
@@ -75,16 +84,11 @@ export async function signupAction(
     return { error: error?.message ?? "Unable to create your account." };
   }
 
-  const db = getDb();
   const admin = isAdminEmail(parsed.data.email);
-  await db.insert(profiles).values({
-    id: data.user.id,
-    email: parsed.data.email,
-    fullName: parsed.data.fullName,
-    isAdmin: admin,
+  await ensureProfileForUser(data.user, {
+    fallbackFullName: parsed.data.fullName,
   });
-
-  await db.insert(loginHistory).values({ userId: data.user.id });
+  await recordLogin(data.user.id);
 
   await createAuditLog({
     actorUserId: data.user.id,

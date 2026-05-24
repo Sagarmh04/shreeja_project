@@ -13,15 +13,19 @@ type AuditPayload = {
 };
 
 export async function createAuditLog(payload: AuditPayload) {
-  const db = getDb();
-  await db.insert(auditLogs).values({
-    actorUserId: payload.actorUserId ?? null,
-    actorEmail: payload.actorEmail,
-    action: payload.action,
-    targetTable: payload.targetTable,
-    targetId: payload.targetId ?? null,
-    metadata: payload.metadata ?? {},
-  });
+  try {
+    const db = getDb();
+    await db.insert(auditLogs).values({
+      actorUserId: payload.actorUserId ?? null,
+      actorEmail: payload.actorEmail,
+      action: payload.action,
+      targetTable: payload.targetTable,
+      targetId: payload.targetId ?? null,
+      metadata: payload.metadata ?? {},
+    });
+  } catch (error) {
+    console.error("Failed to create audit log.", error);
+  }
 }
 
 export async function getAuditLogs(filters: {
