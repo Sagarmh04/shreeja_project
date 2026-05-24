@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FileText, Plus, Shield } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
 
 import { DashboardShell } from "@/app/_components/dashboard-shell";
 import { SetupNotice } from "@/app/_components/setup-notice";
@@ -20,18 +21,29 @@ export default async function DashboardPage() {
   }
 
   const { profile } = await requireAuth();
-  const [records, recentLogin] = await Promise.all([
-    getUserRecords(profile.id),
-    getRecentLogin(profile.id),
-  ]);
+  let records = [] as Awaited<ReturnType<typeof getUserRecords>>;
+  let recentLogin: Awaited<ReturnType<typeof getRecentLogin>> = null;
+  let dataWarning: string | null = null;
 
-  await createAuditLog({
-    actorUserId: profile.id,
-    actorEmail: profile.email,
-    action: "VIEW_RECORDS",
-    targetTable: "personal_records",
-    metadata: { surface: "dashboard" },
-  });
+  try {
+    [records, recentLogin] = await Promise.all([
+      getUserRecords(profile.id),
+      getRecentLogin(profile.id),
+    ]);
+
+    await createAuditLog({
+      actorUserId: profile.id,
+      actorEmail: profile.email,
+      action: "VIEW_RECORDS",
+      targetTable: "personal_records",
+      metadata: { surface: "dashboard" },
+    });
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("Dashboard data failed to load.", error);
+    dataWarning =
+      "Your session is active, but some dashboard data could not be loaded right now.";
+  }
 
   return (
     <DashboardShell
@@ -43,6 +55,11 @@ export default async function DashboardPage() {
     >
       <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
         <section className="grid gap-6">
+          {dataWarning ? (
+            <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+              {dataWarning}
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-3">
             {[
               {

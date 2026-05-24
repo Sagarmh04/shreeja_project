@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 
 import { DashboardShell } from "@/app/_components/dashboard-shell";
 import { SetupNotice } from "@/app/_components/setup-notice";
@@ -18,15 +19,24 @@ export default async function RecordsPage() {
   }
 
   const { profile } = await requireAuth();
-  const records = await getUserRecords(profile.id);
+  let records = [] as Awaited<ReturnType<typeof getUserRecords>>;
+  let dataWarning: string | null = null;
 
-  await createAuditLog({
-    actorUserId: profile.id,
-    actorEmail: profile.email,
-    action: "VIEW_RECORDS",
-    targetTable: "personal_records",
-    metadata: { surface: "records_list" },
-  });
+  try {
+    records = await getUserRecords(profile.id);
+
+    await createAuditLog({
+      actorUserId: profile.id,
+      actorEmail: profile.email,
+      action: "VIEW_RECORDS",
+      targetTable: "personal_records",
+      metadata: { surface: "records_list" },
+    });
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("Records page data failed to load.", error);
+    dataWarning = "Your session is active, but records could not be loaded right now.";
+  }
 
   return (
     <DashboardShell
@@ -37,6 +47,11 @@ export default async function RecordsPage() {
       adminLink={profile.isAdmin}
     >
       <div className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
+        {dataWarning ? (
+          <div className="mb-5 rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            {dataWarning}
+          </div>
+        ) : null}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">All records</h2>
