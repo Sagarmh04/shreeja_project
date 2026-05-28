@@ -1,109 +1,105 @@
-import type { User } from "@supabase/supabase-js";
-import { eq } from "drizzle-orm";
+import "server-only";
+
 import { redirect } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 
-import { getDb } from "@/lib/db";
-import { profiles } from "@/lib/db/schema";
 import { env } from "@/lib/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { AppProfile, AppRole } from "@/lib/types";
 
-export async function getSessionUser() {
-  const supabase = await createSupabaseServerClient();
+type SessionContext = {
+  user: User;
+  profile: AppProfile | null;
+  role: AppRole;
+  isAdmin: boolean;
+};
+
+type AuthenticatedContext = SessionContext & {
+  profile: AppProfile;
+};
+
+function getMissingProfileMessage() {
+  return "Profile setup is incomplete. Run the SQL files in SUPABASE_SETUP and backfill the admin profile.";
+}
+
+export async function getSessionContext(): Promise<SessionContext | null> {
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return user;
-}
-
-function getProfileName(user: User, fallbackFullName?: string | null) {
-  const metadataName =
-    typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name
-      : typeof user.user_metadata?.name === "string"
-        ? user.user_metadata.name
-        : "";
-
-  const fullName = fallbackFullName?.trim() || metadataName.trim();
-  if (fullName) {
-    return fullName;
-  }
-
-  const emailName = user.email?.split("@")[0]?.trim();
-  return emailName || "Member";
-}
-
-export async function ensureProfileForUser(
-  user: User,
-  options?: { fallbackFullName?: string | null },
-) {
-  const db = getDb();
-  const [existingProfile] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.id, user.id))
-    .limit(1);
-
-  if (existingProfile) {
-    return existingProfile;
-  }
-
-  const email = user.email?.trim().toLowerCase();
-  if (!email) {
-    throw new Error("Authenticated user is missing an email address.");
-  }
-
-  const [profile] = await db
-    .insert(profiles)
-    .values({
-      id: user.id,
-      email,
-      fullName: getProfileName(user, options?.fallbackFullName),
-      isAdmin: isAdminEmail(email),
-    })
-    .onConflictDoUpdate({
-      target: profiles.id,
-      set: {
-        email,
-        fullName: getProfileName(user, options?.fallbackFullName),
-        isAdmin: isAdminEmail(email),
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-
-  return profile;
-}
-
-export async function getCurrentProfile() {
-  const user = await getSessionUser();
   if (!user) {
     return null;
   }
 
-  return ensureProfileForUser(user);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  const isAdmin = user.email === env.adminEmail || profile?.role === "admin";
+
+  return {
+    user,
+    profile: (profile as AppProfile | null) ?? null,
+    role: isAdmin ? "admin" : "staff",
+    isAdmin,
+  };
 }
 
-export async function requireAuth() {
-  const user = await getSessionUser();
-  if (!user) {
-    redirect("/login");
+export async function requireAuthenticatedContext(): Promise<AuthenticatedContext> {
+  const context = await getSessionContext();
+
+  if (!context) {
+    redirect("/");
   }
 
-  const profile = await ensureProfileForUser(user);
-
-  return { user, profile };
-}
-
-export async function requireAdmin() {
-  const session = await requireAuth();
-  if (!session.profile.isAdmin) {
-    redirect("/dashboard");
+  if (!context.profile) {
+    redirect(`/?status=error&message=${encodeURIComponent(getMissingProfileMessage())}`);
   }
 
-  return session;
+  if (!context.isAdmin && !context.profile.is_active) {
+    redirect(`/?status=error&message=${encodeURIComponent("Your account is inactive. Contact the admin.")}`);
+  }
+
+  return context as AuthenticatedContext;
 }
 
-export function isAdminEmail(email: string) {
-  return env.adminEmails.includes(email.trim().toLowerCase());
+export async function requireAdminContext() {
+  const context = await requireAuthenticatedContext();
+
+  if (!context.isAdmin) {
+    redirect("/staff");
+  }
+
+  return context;
+}
+
+export async function requireStaffContext() {
+  const context = await requireAuthenticatedContext();
+
+  if (context.isAdmin) {
+    redirect("/admin");
+  }
+
+  return context;
+}
+
+export async function redirectSignedInUser() {
+  const context = await getSessionContext();
+
+  if (!context) {
+    return;
+  }
+
+  if (context.isAdmin) {
+    redirect("/admin");
+  }
+
+  if (!context.profile?.is_active) {
+    redirect(`/?status=error&message=${encodeURIComponent("Your account is inactive. Contact the admin.")}`);
+  }
+
+  redirect("/staff");
 }

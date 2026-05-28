@@ -1,62 +1,57 @@
-import { desc, eq, and, gte, lte, ilike } from "drizzle-orm";
+import "server-only";
 
-import { getDb } from "@/lib/db";
-import { auditLogs, type AuditAction } from "@/lib/db/schema";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type AuditPayload = {
-  actorUserId?: string | null;
-  actorEmail: string;
-  action: AuditAction;
-  targetTable: string;
-  targetId?: string | null;
-  metadata?: Record<string, string | number | boolean | null>;
+  userId: string;
+  changeType: string;
+  changeOnId?: string | null;
+  changeOnLabel?: string | null;
+  fromValue?: Record<string, unknown> | null;
+  toValue?: Record<string, unknown> | null;
 };
 
-export async function createAuditLog(payload: AuditPayload) {
-  try {
-    const db = getDb();
-    await db.insert(auditLogs).values({
-      actorUserId: payload.actorUserId ?? null,
-      actorEmail: payload.actorEmail,
-      action: payload.action,
-      targetTable: payload.targetTable,
-      targetId: payload.targetId ?? null,
-      metadata: payload.metadata ?? {},
-    });
-  } catch (error) {
-    console.error("Failed to create audit log.", error);
+export function pickChangedFields<T extends Record<string, unknown>>(
+  before: T,
+  after: T,
+  fields: Array<keyof T>,
+) {
+  const fromValue: Record<string, unknown> = {};
+  const toValue: Record<string, unknown> = {};
+
+  for (const field of fields) {
+    if (before[field] !== after[field]) {
+      fromValue[String(field)] = before[field];
+      toValue[String(field)] = after[field];
+    }
   }
+
+  return {
+    fromValue: Object.keys(fromValue).length > 0 ? fromValue : null,
+    toValue: Object.keys(toValue).length > 0 ? toValue : null,
+  };
 }
 
-export async function getAuditLogs(filters: {
-  action?: string;
-  user?: string;
-  from?: string;
-  to?: string;
-}) {
-  const db = getDb();
-  const conditions = [];
+export async function insertAuditLog({
+  userId,
+  changeType,
+  changeOnId,
+  changeOnLabel,
+  fromValue,
+  toValue,
+}: AuditPayload) {
+  const supabase = createAdminSupabaseClient();
 
-  if (filters.action) {
-    conditions.push(eq(auditLogs.action, filters.action as AuditAction));
+  const { error } = await supabase.from("audit_logs").insert({
+    user_id: userId,
+    change_type: changeType,
+    change_on_id: changeOnId ?? null,
+    change_on_label: changeOnLabel ?? null,
+    from_value: fromValue ?? null,
+    to_value: toValue ?? null,
+  });
+
+  if (error) {
+    console.error("Failed to write audit log", error.message);
   }
-
-  if (filters.user) {
-    conditions.push(ilike(auditLogs.actorEmail, `%${filters.user}%`));
-  }
-
-  if (filters.from) {
-    conditions.push(gte(auditLogs.createdAt, new Date(filters.from)));
-  }
-
-  if (filters.to) {
-    conditions.push(lte(auditLogs.createdAt, new Date(`${filters.to}T23:59:59`)));
-  }
-
-  return db
-    .select()
-    .from(auditLogs)
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(250);
 }

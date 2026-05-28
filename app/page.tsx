@@ -1,89 +1,104 @@
-import Link from "next/link";
-import { ShieldCheck, SearchCheck, Sparkles } from "lucide-react";
-import { redirect } from "next/navigation";
+import { ArrowRight, ShieldCheck, Store, UserRound } from "lucide-react";
 
-import { Button } from "@/app/_components/button";
-import { SetupNotice } from "@/app/_components/setup-notice";
-import { getSessionUser } from "@/lib/auth";
-import { hasDatabaseEnv, hasSupabaseClientEnv } from "@/lib/env";
+import { signInAction } from "@/app/actions";
+import { StatusBanner } from "@/components/status-banner";
+import { SubmitButton } from "@/components/submit-button";
+import { redirectSignedInUser } from "@/lib/auth";
 
-const highlights = [
-  {
-    title: "Member-first portal",
-    copy: "Members get a calm place to keep their essential care details organized and easy to update.",
-    icon: Sparkles,
-  },
-  {
-    title: "Care-ready access",
-    copy: "Important information stays clear, current, and easy to retrieve when teams need a quick reference.",
-    icon: SearchCheck,
-  },
-  {
-    title: "Built for trust",
-    copy: "A polished, dependable experience for wellness brands that want a simple digital member journey.",
-    icon: ShieldCheck,
-  },
-];
+type HomePageProps = {
+  searchParams: Promise<{
+    status?: string;
+    message?: string;
+  }>;
+};
 
-export default async function HomePage() {
-  if (hasSupabaseClientEnv() && hasDatabaseEnv()) {
-    const user = await getSessionUser();
-    if (user) {
-      redirect("/dashboard");
-    }
-  }
+export default async function HomePage({ searchParams }: HomePageProps) {
+  await redirectSignedInUser();
+  const params = await searchParams;
 
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto flex min-h-screen max-w-7xl flex-col justify-between px-4 py-6 sm:px-6 lg:px-8">
-        <div className="rounded-[36px] border border-white/60 bg-white/85 px-6 py-5 shadow-[0_30px_110px_rgba(15,23,42,0.12)] backdrop-blur">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.26em] text-[var(--accent-deep)]">
-                Northstar Care
-              </p>
-              <h1 className="mt-4 max-w-3xl text-5xl font-semibold leading-tight tracking-tight text-[var(--brand-ink)] sm:text-6xl">
-                A refined member portal for modern wellness and preventive care teams.
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--muted-ink)]">
-                Northstar Care gives members one elegant place to manage contact
-                details, essential references, and supporting documents without
-                unnecessary friction.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-              <Link href="/signup">
-                <Button className="w-full sm:w-auto lg:w-52">Join now</Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="secondary" className="w-full sm:w-auto lg:w-52">
-                  Member sign in
-                </Button>
-              </Link>
-            </div>
+    <main className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center gap-8 px-4 py-10 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-6">
+      <section className="rounded-[2.5rem] border border-[var(--line)] bg-[var(--panel)] p-8 shadow-[0_30px_90px_rgba(16,32,51,0.08)] lg:p-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.42em] text-[var(--accent-deep)]">
+          Northern Star
+        </p>
+        <h1 className="mt-4 max-w-xl text-5xl leading-tight font-semibold text-[var(--brand-ink)]">
+          Store operations, staff coordination, and traceable activity in one place.
+        </h1>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted-ink)]">
+          Built for a growing retail team that needs a cleaner way to manage staff accounts, maintain the product catalog, and keep orders moving without losing visibility.
+        </p>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
+            <Store className="h-6 w-6 text-[var(--accent-deep)]" />
+            <h2 className="mt-4 text-lg font-semibold">Catalog clarity</h2>
+            <p className="mt-2 text-sm text-[var(--muted-ink)]">
+              Keep pricing, availability, and store details current from a single operational workspace.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
+            <UserRound className="h-6 w-6 text-[var(--accent-deep)]" />
+            <h2 className="mt-4 text-lg font-semibold">Faster order desk</h2>
+            <p className="mt-2 text-sm text-[var(--muted-ink)]">
+              Let staff handle customer orders quickly while keeping each user focused on their own work.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-[var(--line)] bg-[var(--panel-soft)] p-5">
+            <ShieldCheck className="h-6 w-6 text-[var(--accent-deep)]" />
+            <h2 className="mt-4 text-lg font-semibold">Clear accountability</h2>
+            <p className="mt-2 text-sm text-[var(--muted-ink)]">
+              Important actions are easy to review, helping the business stay organized as the team grows.
+            </p>
           </div>
         </div>
 
-        {!hasSupabaseClientEnv() || !hasDatabaseEnv() ? (
-          <div className="mt-6">
-            <SetupNotice message="The project scaffold is ready, but your real Supabase URL, publishable key, service role key, and database URL still need to replace the __REPLACE_ME__ placeholders in .env.local." />
-          </div>
-        ) : null}
-
-        <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {highlights.map(({ title, copy, icon: Icon }) => (
-            <article
-              key={title}
-              className="rounded-[32px] border border-white/60 bg-[var(--panel)] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.08)]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--panel-soft)] text-[var(--accent-deep)]">
-                <Icon className="h-6 w-6" />
-              </div>
-              <h2 className="mt-5 text-2xl font-semibold tracking-tight">{title}</h2>
-              <p className="mt-3 text-sm leading-7 text-[var(--muted-ink)]">{copy}</p>
-            </article>
-          ))}
+        <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--brand-ink)] px-5 py-3 text-sm font-medium text-white">
+          Northern Star operations portal
+          <ArrowRight className="h-4 w-4" />
         </div>
+      </section>
+
+      <section className="rounded-[2.5rem] border border-[var(--line)] bg-[var(--panel)] p-8 shadow-[0_30px_90px_rgba(16,32,51,0.08)] lg:p-10">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-[var(--accent-deep)]">
+            Sign in
+          </p>
+          <h2 className="text-3xl font-semibold">Access your portal</h2>
+          <p className="text-sm leading-6 text-[var(--muted-ink)]">
+            Use your work credentials to continue. Staff access is provisioned by the store administrator.
+          </p>
+        </div>
+
+        <div className="mt-6">
+          <StatusBanner status={params.status} message={params.message} />
+        </div>
+
+        <form action={signInAction} className="mt-6 space-y-4">
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-[var(--muted-ink)]">Email</span>
+            <input
+              name="email"
+              type="email"
+              required
+              className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none transition focus:border-[var(--accent)]"
+              placeholder="name@northernstar.com"
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-[var(--muted-ink)]">Password</span>
+            <input
+              name="password"
+              type="password"
+              required
+              className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none transition focus:border-[var(--accent)]"
+              placeholder="Enter your password"
+            />
+          </label>
+          <SubmitButton className="w-full rounded-full bg-[var(--brand-ink)] px-4 py-3 font-medium text-white transition hover:bg-[#19324f] disabled:cursor-not-allowed disabled:opacity-60">
+            Sign in
+          </SubmitButton>
+        </form>
       </section>
     </main>
   );

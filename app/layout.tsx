@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Northstar Care",
-  description: "A modern member portal for managing personal care records.",
+  title: "Northern Star Audit Portal",
+  description: "Employee and audit management portal for Northern Star.",
 };
 
 export default function RootLayout({

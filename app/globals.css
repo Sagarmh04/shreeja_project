@@ -9,6 +9,11 @@
   --line: rgba(16, 32, 51, 0.12);
   --accent: #0d9488;
   --accent-deep: #0f766e;
+  --sidebar: #f4f7fb;
+  --sidebar-soft: #eef2f7;
+  --sidebar-line: rgba(15, 23, 42, 0.08);
+  --sidebar-ink: #0f172a;
+  --sidebar-muted: #64748b;
   --spot: #f7c66c;
   --danger: #991b1b;
 }

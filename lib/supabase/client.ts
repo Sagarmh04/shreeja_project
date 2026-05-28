@@ -2,23 +2,16 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-import { env, hasSupabaseClientEnv } from "@/lib/env";
+export function createBrowserSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-let browserClient: ReturnType<typeof createBrowserClient> | null = null;
-
-export function getSupabaseBrowserClient() {
-  if (!hasSupabaseClientEnv()) {
-    throw new Error(
-      "Supabase client environment variables are not configured. Update .env.local placeholders first.",
-    );
+  if (!supabaseUrl || !publishableKey) {
+    throw new Error("Missing public Supabase environment variables.");
   }
 
-  if (!browserClient) {
-    browserClient = createBrowserClient(
-      env.supabaseUrl,
-      env.supabasePublishableKey,
-    );
-  }
-
-  return browserClient;
+  return createBrowserClient(
+    supabaseUrl,
+    publishableKey,
+  );
 }

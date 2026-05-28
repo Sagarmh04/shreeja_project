@@ -1,166 +1,129 @@
-import { desc } from "drizzle-orm";
+import Link from "next/link";
 
-import { DashboardShell } from "@/app/_components/dashboard-shell";
-import { InputField, SelectField } from "@/app/_components/field";
-import { SetupNotice } from "@/app/_components/setup-notice";
-import { createAuditLog, getAuditLogs } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
-import { getDb } from "@/lib/db";
-import { auditLogs, profiles } from "@/lib/db/schema";
-import { hasDatabaseEnv, hasSupabaseClientEnv } from "@/lib/env";
-import { formatDateTime } from "@/lib/utils";
+import { StatusBanner } from "@/components/status-banner";
+import { formatCurrency, formatDateTime } from "@/lib/format";
+import {
+  getAuditLogs,
+  getItems,
+  getOrdersForAdmin,
+  getStaffMembers,
+  getStoreProfile,
+} from "@/lib/queries";
 
-function formatActionLabel(action: string) {
-  return action
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-type AdminPageProps = {
+type AdminOverviewPageProps = {
   searchParams: Promise<{
-    user?: string;
-    action?: string;
-    from?: string;
-    to?: string;
+    status?: string;
+    message?: string;
   }>;
 };
 
-export default async function AdminPage({ searchParams }: AdminPageProps) {
-  if (!hasSupabaseClientEnv() || !hasDatabaseEnv()) {
-    return (
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <SetupNotice message="The admin dashboard is ready, but queries will start working after you replace the __REPLACE_ME__ values in .env.local." />
-      </main>
-    );
-  }
-
-  const filters = await searchParams;
-  const { profile } = await requireAdmin();
-  const db = getDb();
-  const [users, logs, actionTypes] = await Promise.all([
-    db
-      .select({
-        id: profiles.id,
-        email: profiles.email,
-        fullName: profiles.fullName,
-        createdAt: profiles.createdAt,
-      })
-      .from(profiles)
-      .orderBy(desc(profiles.createdAt))
-      .limit(50),
-    getAuditLogs(filters),
-    db.selectDistinct({ action: auditLogs.action }).from(auditLogs),
+export default async function AdminOverviewPage({
+  searchParams,
+}: AdminOverviewPageProps) {
+  const params = await searchParams;
+  const [store, staffMembers, items, recentOrders, recentAudits] = await Promise.all([
+    getStoreProfile(),
+    getStaffMembers(),
+    getItems(true),
+    getOrdersForAdmin(20),
+    getAuditLogs(8),
   ]);
 
-  await createAuditLog({
-    actorUserId: profile.id,
-    actorEmail: profile.email,
-    action: "VIEW_AUDIT_LOGS",
-    targetTable: "audit_logs",
-  });
+  const activeStaff = staffMembers.filter((staff) => staff.is_active).length;
+  const activeItems = items.filter((item) => item.is_active).length;
+  const totalRevenue = recentOrders.reduce((sum, order) => sum + order.total_price, 0);
 
   return (
-    <DashboardShell
-      eyebrow="Operations console"
-      title="Team activity at a glance"
-      description="Review member accounts, track workflow history, and filter events by date or action."
-      profileName={profile.fullName}
-      adminLink
-    >
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted-ink)]">
-                The latest member accounts across Northstar Care.
-              </p>
-            </div>
+    <>
+      <StatusBanner status={params.status} message={params.message} />
+
+      <section className="grid gap-6 border-b border-[var(--line)] pb-6 md:grid-cols-2 xl:grid-cols-4">
+        <div>
+          <p className="text-sm text-[var(--muted-ink)]">Store</p>
+          <h2 className="mt-3 text-2xl font-semibold">{store.store_name}</h2>
+          <p className="mt-2 text-sm text-[var(--muted-ink)]">{store.address}</p>
+        </div>
+        <div>
+          <p className="text-sm text-[var(--muted-ink)]">Active staff</p>
+          <h2 className="mt-3 text-4xl font-semibold">{activeStaff}</h2>
+          <p className="mt-2 text-sm text-[var(--muted-ink)]">{staffMembers.length} total staff accounts</p>
+        </div>
+        <div>
+          <p className="text-sm text-[var(--muted-ink)]">Active catalog items</p>
+          <h2 className="mt-3 text-4xl font-semibold">{activeItems}</h2>
+          <p className="mt-2 text-sm text-[var(--muted-ink)]">{items.length} items in the database</p>
+        </div>
+        <div>
+          <p className="text-sm text-[var(--muted-ink)]">Recent order value</p>
+          <h2 className="mt-3 text-4xl font-semibold">{formatCurrency(totalRevenue)}</h2>
+          <p className="mt-2 text-sm text-[var(--muted-ink)]">{recentOrders.length} latest orders shown below</p>
+        </div>
+      </section>
+
+      <section className="grid gap-10 xl:grid-cols-[1.5fr_0.9fr]">
+        <div>
+          <h2 className="text-2xl font-semibold">All orders</h2>
+          <p className="mt-2 text-sm text-[var(--muted-ink)]">
+            The admin can review every order placed by staff members.
+          </p>
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-[var(--muted-ink)]">
+                <tr>
+                  <th className="pb-3 font-medium">Order</th>
+                  <th className="pb-3 font-medium">Customer</th>
+                  <th className="pb-3 font-medium">Staff</th>
+                  <th className="pb-3 font-medium">Total</th>
+                  <th className="pb-3 font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)]">
+                {recentOrders.map((order) => (
+                  <tr key={order.id}>
+                    <td className="py-4">
+                      <Link
+                        href={`/admin/orders/${order.id}`}
+                        prefetch={false}
+                        className="font-medium text-[var(--accent-deep)] transition hover:text-[var(--brand-ink)]"
+                      >
+                        {order.order_number}
+                      </Link>
+                    </td>
+                    <td className="py-4">
+                      <div className="font-medium">{order.customer_name}</div>
+                      <div className="text-[var(--muted-ink)]">{order.customer_phone}</div>
+                    </td>
+                    <td className="py-4">
+                      <div>{order.ordered_by?.name ?? "Unknown"}</div>
+                      <div className="text-[var(--muted-ink)]">{order.ordered_by?.staff_id ?? "-"}</div>
+                    </td>
+                    <td className="py-4">{formatCurrency(order.total_price)}</td>
+                    <td className="py-4 text-[var(--muted-ink)]">{formatDateTime(order.ordered_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="mt-6 grid gap-4">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--panel-soft)] p-4"
-              >
-                <p className="font-semibold text-[var(--brand-ink)]">{user.fullName}</p>
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">{user.email}</p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-deep)]">
-                  Joined {formatDateTime(user.createdAt)}
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-semibold">Recent audit activity</h2>
+          <div className="mt-6 space-y-4">
+            {recentAudits.map((audit) => (
+              <div key={audit.id} className="border-b border-[var(--line)] pb-4 last:border-b-0">
+                <p className="text-sm font-medium text-[var(--brand-ink)]">{audit.change_type}</p>
+                <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                  {audit.user?.name ?? "System"} {audit.user?.staff_id ? `(${audit.user.staff_id})` : ""}
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--accent-deep)]">
+                  {formatDateTime(audit.timestamp)}
                 </p>
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-[0_22px_70px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Activity center</h2>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted-ink)]">
-                Search by member, action, or date range.
-              </p>
-            </div>
-            <form className="grid gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--panel-soft)] p-4 md:grid-cols-2">
-              <InputField
-                label="User email"
-                name="user"
-                defaultValue={filters.user}
-                placeholder="Search by email"
-              />
-              <SelectField label="Action" name="action" defaultValue={filters.action ?? ""}>
-                <option value="">All actions</option>
-                {actionTypes.map(({ action }) => (
-                  <option key={action} value={action}>
-                    {formatActionLabel(action)}
-                  </option>
-                ))}
-              </SelectField>
-              <InputField label="From" name="from" type="date" defaultValue={filters.from} />
-              <InputField label="To" name="to" type="date" defaultValue={filters.to} />
-              <div className="md:col-span-2">
-                <button
-                  type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--brand-ink)] px-5 text-sm font-semibold text-white"
-                >
-                  Apply filters
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="mt-6 overflow-hidden rounded-[24px] border border-[var(--line)]">
-            <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1fr] gap-3 bg-[var(--panel-soft)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
-              <span>Member</span>
-              <span>Action</span>
-              <span>Area</span>
-              <span>When</span>
-            </div>
-            <div className="divide-y divide-[var(--line)] bg-white">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="grid grid-cols-[1.2fr_0.8fr_0.8fr_1fr] gap-3 px-4 py-4 text-sm text-[var(--brand-ink)]"
-                >
-                  <span className="truncate">{log.actorEmail}</span>
-                  <span>{formatActionLabel(log.action)}</span>
-                  <span className="truncate">{log.targetTable}</span>
-                  <span className="text-[var(--muted-ink)]">
-                    {formatDateTime(log.createdAt)}
-                  </span>
-                </div>
-              ))}
-              {logs.length === 0 ? (
-                <div className="px-4 py-8 text-sm text-[var(--muted-ink)]">
-                  No activity matches the selected filters.
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      </div>
-    </DashboardShell>
+        </div>
+      </section>
+    </>
   );
 }
