@@ -20,9 +20,19 @@ export default async function StaffOrderDetailPage({ params }: StaffOrderDetailP
 
     await insertAuditLog({
       userId: context.profile.id,
+      eventKey: "order_viewed",
       changeType: "viewed order details",
+      entityType: "order",
+      entityId: order.id,
+      entityLabel: order.customer_name,
       changeOnId: order.id,
       changeOnLabel: order.customer_name,
+      eventMetadata: {
+        order_number: order.order_number,
+        customer_name: order.customer_name,
+        customer_phone: order.customer_phone,
+        viewed_by_role: context.profile.role,
+      },
     });
 
     return (

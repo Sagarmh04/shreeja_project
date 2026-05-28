@@ -9,6 +9,28 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { AppProfile, ItemRecord, StoreProfile } from "@/lib/types";
 
+function buildAuditChangeEntries(
+  fromValue: Record<string, unknown> | null,
+  toValue: Record<string, unknown> | null,
+) {
+  const keys = Array.from(
+    new Set([...Object.keys(fromValue ?? {}), ...Object.keys(toValue ?? {})]),
+  );
+
+  return keys.map((field) => ({
+    field,
+    from: fromValue?.[field] ?? null,
+    to: toValue?.[field] ?? null,
+  }));
+}
+
+function buildStatusMetadata(fromActive: boolean, toActive: boolean) {
+  return {
+    status_from: fromActive,
+    status_to: toActive,
+  };
+}
+
 function redirectWithMessage(path: string, status: "success" | "error", message: string) {
   const params = new URLSearchParams({ status, message });
   redirect(`${path}?${params.toString()}`);
@@ -92,7 +114,14 @@ export async function signInAction(formData: FormData) {
 
   await insertAuditLog({
     userId: profile.id,
+    eventKey: "auth_logged_in",
     changeType: "logged in",
+    entityType: "auth",
+    eventMetadata: {
+      actor_name: profile.name,
+      actor_role: profile.role,
+      staff_id: profile.staff_id,
+    },
   });
 
   redirect(profile.role === "admin" ? "/admin" : "/staff");
@@ -105,7 +134,14 @@ export async function signOutAction() {
   if (context.profile) {
     await insertAuditLog({
       userId: context.profile.id,
+      eventKey: "auth_logged_out",
       changeType: "logged out",
+      entityType: "auth",
+      eventMetadata: {
+        actor_name: context.profile.name,
+        actor_role: context.profile.role,
+        staff_id: context.profile.staff_id,
+      },
     });
   }
 
@@ -146,9 +182,23 @@ export async function createStaffAction(formData: FormData) {
 
     await insertAuditLog({
       userId: actor.id,
+      eventKey: "staff_created",
       changeType: "staff create",
+      entityType: "staff",
+      entityId: profile.id,
+      entityLabel: profile.name,
       changeOnId: profile.id,
       changeOnLabel: profile.name,
+      eventMetadata: {
+        snapshot: {
+          name: profile.name,
+          staff_id: profile.staff_id,
+          phone: profile.phone,
+          email: profile.email,
+          is_active: profile.is_active,
+        },
+        actor_role: actor.role,
+      },
       toValue: {
         name: profile.name,
         staff_id: profile.staff_id,
@@ -208,9 +258,23 @@ export async function updateStaffAction(formData: FormData) {
     if (changed.fromValue || changed.toValue) {
       await insertAuditLog({
         userId: actor.id,
+        eventKey: "staff_updated",
         changeType: "staff edit",
+        entityType: "staff",
+        entityId: profileId,
+        entityLabel: updates.name,
         changeOnId: profileId,
         changeOnLabel: updates.name,
+        eventMetadata: {
+          snapshot: {
+            name: updates.name,
+            staff_id: updates.staff_id,
+            phone: updates.phone,
+            email: existing.email,
+          },
+          actor_role: actor.role,
+          changes: buildAuditChangeEntries(changed.fromValue, changed.toValue),
+        },
         fromValue: changed.fromValue,
         toValue: changed.toValue,
       });
@@ -265,9 +329,22 @@ export async function toggleStaffStatusAction(formData: FormData) {
 
     await insertAuditLog({
       userId: actor.id,
+      eventKey: nextActive ? "staff_activated" : "staff_deactivated",
       changeType: nextActive ? "staff activate" : "staff deactivate",
+      entityType: "staff",
+      entityId: profileId,
+      entityLabel: existing.name,
       changeOnId: profileId,
       changeOnLabel: existing.name,
+      eventMetadata: {
+        snapshot: {
+          name: existing.name,
+          staff_id: existing.staff_id,
+          phone: existing.phone,
+        },
+        actor_role: actor.role,
+        ...buildStatusMetadata(existing.is_active, nextActive),
+      },
       fromValue: { is_active: existing.is_active },
       toValue: { is_active: nextActive },
     });
@@ -306,9 +383,21 @@ export async function createItemAction(formData: FormData) {
 
     await insertAuditLog({
       userId: actor.id,
+      eventKey: "item_created",
       changeType: "item added",
+      entityType: "item",
+      entityId: data.id,
+      entityLabel: data.name,
       changeOnId: data.id,
       changeOnLabel: data.name,
+      eventMetadata: {
+        snapshot: {
+          name: data.name,
+          price: data.price,
+          is_active: data.is_active,
+        },
+        actor_role: actor.role,
+      },
       toValue: {
         name: data.name,
         price: data.price,
@@ -365,9 +454,22 @@ export async function updateItemAction(formData: FormData) {
     if (changed.fromValue || changed.toValue) {
       await insertAuditLog({
         userId: actor.id,
+        eventKey: "item_updated",
         changeType: "item edited",
+        entityType: "item",
+        entityId: itemId,
+        entityLabel: updates.name,
         changeOnId: itemId,
         changeOnLabel: updates.name,
+        eventMetadata: {
+          snapshot: {
+            name: updates.name,
+            price: updates.price,
+            is_active: existing.is_active,
+          },
+          actor_role: actor.role,
+          changes: buildAuditChangeEntries(changed.fromValue, changed.toValue),
+        },
         fromValue: changed.fromValue,
         toValue: changed.toValue,
       });
@@ -411,9 +513,21 @@ export async function toggleItemStatusAction(formData: FormData) {
 
     await insertAuditLog({
       userId: actor.id,
+      eventKey: nextActive ? "item_restored" : "item_removed",
       changeType: nextActive ? "item restored" : "item removed",
+      entityType: "item",
+      entityId: itemId,
+      entityLabel: existing.name,
       changeOnId: itemId,
       changeOnLabel: existing.name,
+      eventMetadata: {
+        snapshot: {
+          name: existing.name,
+          price: existing.price,
+        },
+        actor_role: actor.role,
+        ...buildStatusMetadata(existing.is_active, nextActive),
+      },
       fromValue: { is_active: existing.is_active },
       toValue: { is_active: nextActive },
     });
@@ -470,9 +584,22 @@ export async function updateStoreProfileAction(formData: FormData) {
     if (changed.fromValue || changed.toValue) {
       await insertAuditLog({
         userId: actor.id,
+        eventKey: "store_profile_updated",
         changeType: "profile edit",
+        entityType: "store",
+        entityId: existing.id,
+        entityLabel: updates.store_name,
         changeOnId: existing.id,
         changeOnLabel: updates.store_name,
+        eventMetadata: {
+          snapshot: {
+            store_name: updates.store_name,
+            phone: updates.phone,
+            address: updates.address,
+          },
+          actor_role: actor.role,
+          changes: buildAuditChangeEntries(changed.fromValue, changed.toValue),
+        },
         fromValue: changed.fromValue,
         toValue: changed.toValue,
       });
@@ -522,9 +649,23 @@ export async function updateOwnProfileAction(formData: FormData) {
     if (changed.fromValue || changed.toValue) {
       await insertAuditLog({
         userId: context.profile.id,
+        eventKey: "staff_updated",
         changeType: "profile edit",
+        entityType: "staff",
+        entityId: context.profile.id,
+        entityLabel: updates.name,
         changeOnId: context.profile.id,
         changeOnLabel: updates.name,
+        eventMetadata: {
+          snapshot: {
+            name: updates.name,
+            staff_id: context.profile.staff_id,
+            phone: updates.phone,
+            email: context.profile.email,
+          },
+          actor_role: context.profile.role,
+          changes: buildAuditChangeEntries(changed.fromValue, changed.toValue),
+        },
         fromValue: changed.fromValue,
         toValue: changed.toValue,
       });
@@ -642,9 +783,31 @@ export async function createOrderAction(formData: FormData) {
 
     await insertAuditLog({
       userId: context.profile.id,
+      eventKey: "order_created",
       changeType: "order created",
+      entityType: "order",
+      entityId: order.id,
+      entityLabel: customerName,
       changeOnId: order.id,
       changeOnLabel: customerName,
+      eventMetadata: {
+        order_number: order.order_number,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        ordered_by_name: context.profile.name,
+        ordered_by_staff_id: context.profile.staff_id,
+        ordered_by_role: context.profile.role,
+        item_count: orderLineItems.length,
+        subtotal,
+        total_discount: totalDiscount,
+        final_total: totalPrice,
+        items: orderLineItems.map((item) => ({
+          item_name: item.item_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        })),
+      },
       toValue: {
         order_number: order.order_number,
         customer_name: customerName,

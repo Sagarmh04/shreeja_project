@@ -19,9 +19,17 @@ export default async function AdminProfilePage({ searchParams }: AdminProfilePag
 
   await insertAuditLog({
     userId: context.profile!.id,
+    eventKey: "store_profile_viewed",
     changeType: "viewed profile",
+    entityType: "store",
+    entityId: store.id,
+    entityLabel: store.store_name,
     changeOnId: store.id,
     changeOnLabel: store.store_name,
+    eventMetadata: {
+      store_name: store.store_name,
+      viewed_by_role: context.profile!.role,
+    },
   });
 
   return (

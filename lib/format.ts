@@ -13,6 +13,12 @@ export function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+export function formatDateLabel(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "full",
+  }).format(new Date(value));
+}
+
 export function formatAuditJson(value: Record<string, unknown> | null) {
   if (!value || Object.keys(value).length === 0) {
     return "-";
@@ -59,6 +65,15 @@ export function formatAuditFieldLabel(key: string) {
   );
 }
 
+const currencyFields = new Set([
+  "price",
+  "unit_price",
+  "total_price",
+  "total_discount",
+  "subtotal",
+  "final_total",
+]);
+
 export function formatAuditValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "-";
@@ -81,4 +96,12 @@ export function formatAuditValue(value: unknown): string {
   }
 
   return String(value);
+}
+
+export function formatAuditFieldValue(field: string, value: unknown): string {
+  if (currencyFields.has(field) && typeof value === "number") {
+    return formatCurrency(value);
+  }
+
+  return formatAuditValue(value);
 }

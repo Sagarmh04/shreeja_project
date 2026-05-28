@@ -57,8 +57,13 @@ export type AuditRecord = {
   timestamp: string;
   user_id: string | null;
   change_type: string;
+  event_key: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  entity_label: string | null;
   change_on_id: string | null;
   change_on_label: string | null;
+  event_metadata: Record<string, unknown> | null;
   from_value: Record<string, unknown> | null;
   to_value: Record<string, unknown> | null;
 };

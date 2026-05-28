@@ -15,7 +15,7 @@ type OrderWithStaff = OrderRecord & {
 };
 
 type AuditWithUser = AuditRecord & {
-  user: Pick<AppProfile, "name" | "staff_id"> | null;
+  user: Pick<AppProfile, "name" | "staff_id" | "role"> | null;
 };
 
 async function getSupabase() {
@@ -69,7 +69,7 @@ export async function getAuditLogs(limit = 100) {
   const supabase = await getSupabase();
   const { data, error } = await supabase
     .from("audit_logs")
-    .select("*, user:profiles!audit_logs_user_id_fkey(name, staff_id)")
+    .select("*, user:profiles!audit_logs_user_id_fkey(name, staff_id, role)")
     .order("timestamp", { ascending: false })
     .limit(limit);
 

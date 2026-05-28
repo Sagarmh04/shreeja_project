@@ -17,9 +17,18 @@ export default async function StaffProfilePage({ searchParams }: StaffProfilePag
 
   await insertAuditLog({
     userId: context.profile.id,
+    eventKey: "staff_profile_viewed",
     changeType: "viewed profile",
+    entityType: "staff",
+    entityId: context.profile.id,
+    entityLabel: context.profile.name,
     changeOnId: context.profile.id,
     changeOnLabel: context.profile.name,
+    eventMetadata: {
+      name: context.profile.name,
+      staff_id: context.profile.staff_id,
+      viewed_by_role: context.profile.role,
+    },
   });
 
   return (

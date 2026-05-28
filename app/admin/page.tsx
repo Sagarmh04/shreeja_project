@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { StatusBanner } from "@/components/status-banner";
+import { formatAuditHeadline, formatAuditMetaLine } from "@/lib/audit-feed";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import {
   getAuditLogs,
@@ -112,10 +113,10 @@ export default async function AdminOverviewPage({
           <div className="mt-6 space-y-4">
             {recentAudits.map((audit) => (
               <div key={audit.id} className="border-b border-[var(--line)] pb-4 last:border-b-0">
-                <p className="text-sm font-medium text-[var(--brand-ink)]">{audit.change_type}</p>
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                  {audit.user?.name ?? "System"} {audit.user?.staff_id ? `(${audit.user.staff_id})` : ""}
+                <p className="text-sm font-medium text-[var(--brand-ink)]">
+                  {formatAuditHeadline(audit)}
                 </p>
+                <p className="mt-1 text-sm text-[var(--muted-ink)]">{formatAuditMetaLine(audit)}</p>
                 <p className="mt-2 text-xs uppercase tracking-[0.24em] text-[var(--accent-deep)]">
                   {formatDateTime(audit.timestamp)}
                 </p>
