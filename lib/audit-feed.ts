@@ -1,3 +1,4 @@
+import { APP_TIME_ZONE } from "@/lib/format";
 import type { AuditRecord } from "@/lib/types";
 
 type AuditWithUser = AuditRecord & {
@@ -136,13 +137,19 @@ export function getAuditTargetHref(entry: AuditRecord) {
   }
 }
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+function getDayKeyInAppTimezone(value: string | Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(typeof value === "string" ? new Date(value) : value);
 }
 
 export function getAuditDayLabel(timestamp: string) {
-  const current = startOfDay(new Date());
-  const target = startOfDay(new Date(timestamp));
+  const current = new Date(`${getDayKeyInAppTimezone(new Date())}T00:00:00`);
+  const targetKey = getDayKeyInAppTimezone(timestamp);
+  const target = new Date(`${targetKey}T00:00:00`);
   const diffDays = Math.round((current.getTime() - target.getTime()) / 86400000);
 
   if (diffDays === 0) {
@@ -153,7 +160,7 @@ export function getAuditDayLabel(timestamp: string) {
     return "Yesterday";
   }
 
-  return target.toISOString();
+  return `${targetKey}T00:00:00`;
 }
 
 export function groupAuditLogsByDay(entries: AuditWithUser[]) {
